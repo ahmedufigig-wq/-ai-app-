@@ -19,19 +19,122 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-
-    - name: Setup Gradle Wrapper
+    - name: Create Simple Android Project Structure
       run: |
+        mkdir -p app/src/main/java/com/ai/assistant
+        mkdir -p app/src/main/res/layout
+        mkdir -p app/src/main/res/values
+
+        # AndroidManifest.xml
+        cat << 'EOF' > app/src/main/AndroidManifest.xml
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+            package="com.ai.assistant">
+            <uses-permission android:name="android.permission.INTERNET" />
+            <application android:label="مساعد الذكاء الاصطناعي" android:icon="@android:drawable/ic_menu_agenda">
+                <activity android:name=".MainActivity" android:exported="true">
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN" />
+                        <category android:name="android.intent.category.LAUNCHER" />
+                    </intent-filter>
+                </activity>
+            </application>
+        </manifest>
+        EOF
+
+        # strings.xml
+        cat << 'EOF' > app/src/main/res/values/strings.xml
+        <resources>
+            <string name="app_name">مساعد الذكاء الاصطناعي</string>
+        </resources>
+        EOF
+
+        # activity_main.xml
+        cat << 'EOF' > app/src/main/res/layout/activity_main.xml
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+            <WebView
+                android:id="@+id/webview"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"/>
+        </LinearLayout>
+        EOF
+
+        # MainActivity.java
+        cat << 'EOF' > app/src/main/java/com/ai/assistant/MainActivity.java
+        package com.ai.assistant;
+        import android.os.Bundle;
+        import android.webkit.WebView;
+        import android.webkit.WebViewClient;
+        import androidx.appcompat.app.AppCompatActivity;
+        public class MainActivity extends AppCompatActivity {
+            @Override
+            protected void onCreate(Bundle savedInstanceState) {
+                super.onCreate(savedInstanceState);
+                WebView webView = new WebView(this);
+                webView.getSettings().setJavaScriptEnabled(true);
+                webView.setWebViewClient(new WebViewClient());
+                webView.loadUrl("https://aistudio.google.com");
+                setContentView(webView);
+            }
+        }
+        EOF
+
+        # build.gradle (Project)
+        cat << 'EOF' > build.gradle
+        buildscript {
+            repositories {
+                google()
+                mavenCentral()
+            }
+            dependencies {
+                classpath 'com.android.tools.build:gradle:7.4.2'
+            }
+        }
+        allprojects {
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        EOF
+
+        # settings.gradle
+        cat << 'EOF' > settings.gradle
+        include ':app'
+        rootProject.name = "AIAssistant"
+        EOF
+
+        # app/build.gradle
+        cat << 'EOF' > app/build.gradle
+        plugins {
+            id 'com.android.application'
+        }
+        android {
+            namespace 'com.ai.assistant'
+            compileSdk 33
+            defaultConfig {
+                applicationId "com.ai.assistant"
+                minSdk 21
+                targetSdk 33
+                versionCode 1
+                versionName "1.0"
+            }
+        }
+        dependencies {
+            implementation 'androidx.appcompat:appcompat:1.6.1'
+        }
+        EOF
+
         gradle wrapper
 
-    - name: Build Debug APK
+    - name: Build APK with Gradle
       run: |
-        chmod +x gradlew || true
+        chmod +x gradlew
         ./gradlew assembleDebug --no-daemon
 
-    - name: Upload APK Artifact
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: AI-Assistant-App-APK
